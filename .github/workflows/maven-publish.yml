@@ -3,7 +3,8 @@ name: Maven central publish (1.8.1)
 on:
   push:
     branches:
-      - main  
+      - main
+      - master
   release:
     types: [published]
 
