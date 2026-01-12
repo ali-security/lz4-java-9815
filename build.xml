@@ -150,6 +150,7 @@
     <javac
       includeAntRuntime="false"
       srcdir="${src}/java"
+      sourcepath="${build}/java:${src}/java"
       source="${javac.source}"
       target="${javac.target}"
       encoding="UTF-8"

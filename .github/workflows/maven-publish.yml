@@ -1,12 +1,15 @@
 name: Maven central publish (1.8.1)
 
 on:
+  push:
+    branches:
+      - main  
   release:
     types: [published]
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -25,7 +28,7 @@ jobs:
           cache: maven
           gpg-private-key: ${{ secrets.GPG_KEY }}
           gpg-passphrase: GPG_PASSWORD
-          server-id: 'central'
+          server-id: central
           server-username: CENTRAL_TOKEN_USERNAME
           server-password: CENTRAL_TOKEN_PASSWORD
 

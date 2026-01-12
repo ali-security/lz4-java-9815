@@ -19,9 +19,23 @@ package net.jpountz.lz4;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import java.util.stream.IntStream;
+import java.io.ByteArrayOutputStream;
 
 import java.util.Arrays;
 import java.util.Collection;
+
+import static net.jpountz.lz4.LZ4Constants.MIN_MATCH;
+import java.util.stream.Stream;
+import static org.junit.Assert.assertArrayEquals;
+
+import java.util.ArrayList;
+import java.util.List;
+
+// Simple interface to unify fast and safe decompressors
+interface FallibleDecompressor {
+    void decompress(byte[] src, byte[] dest);
+}
 
 @RunWith(Parameterized.class)
 public class OutOfBoundsTest {
@@ -52,4 +66,46 @@ public class OutOfBoundsTest {
             }
         }
     }
-}
+    static Stream<FallibleDecompressor> allDecompressors() {
+        return Stream.of(
+            (FallibleDecompressor) LZ4Factory.safeInstance().fastDecompressor()::decompress,
+            (FallibleDecompressor) LZ4Factory.safeInstance().safeDecompressor()::decompress,
+            (FallibleDecompressor) LZ4Factory.unsafeInstance().fastDecompressor()::decompress,
+            (FallibleDecompressor) LZ4Factory.unsafeInstance().safeDecompressor()::decompress
+        );
+    }
+
+    @Test
+    public void copyBeyondOutput() {
+        FallibleDecompressor[] decompressors = new FallibleDecompressor[]{
+            LZ4Factory.safeInstance().fastDecompressor()::decompress,
+            LZ4Factory.safeInstance().safeDecompressor()::decompress,
+            LZ4Factory.unsafeInstance().fastDecompressor()::decompress,
+            LZ4Factory.unsafeInstance().safeDecompressor()::decompress
+        };
+
+        for (FallibleDecompressor decompressor : decompressors) {
+            for (int dec = 0; dec < 14; dec++) {
+                for (int len = dec; len < 14; len++) {
+
+                    byte[] compressed = {
+                        (byte) 0xe0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                        (byte) len, (byte) dec, 0,
+                        (byte) 0xc0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                    };
+
+                    byte[] output = new byte[14 + MIN_MATCH + len + MIN_MATCH + 12];
+                    Arrays.fill(output, (byte) 0x77);
+
+                    decompressor.decompress(compressed, output);
+
+                    assertArrayEquals(
+                        "dec=" + dec + " len=" + len + " decompressor=" + decompressor,
+                        new byte[output.length],
+                        output);
+                }
+            }
+        }
+    }
+} 
+
